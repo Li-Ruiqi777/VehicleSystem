@@ -1,0 +1,20 @@
+BasedOnStyle: Microsoft
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+BreakBeforeBraces: Allman
+NamespaceIndentation: All
+FixNamespaceComments: false
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: false
+AllowShortLambdasOnASingleLine: false
+SpaceBeforeParens: ControlStatements
+ColumnLimit: 110
+AccessModifierOffset: -4
+AlignConsecutiveMacros: true
+
+
+# AlignConsecutiveDeclarations: true
+# AlignConsecutiveAssignments: true
+# AlignConsecutiveBitFields: true
+# IndentCaseLabels: true
