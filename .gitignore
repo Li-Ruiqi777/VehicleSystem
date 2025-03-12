@@ -38,3 +38,5 @@
 *.dts
 *.dtsi
 **/imx6ul-pinfunc.h
+
+/build

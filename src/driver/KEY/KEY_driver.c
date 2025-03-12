@@ -118,6 +118,7 @@ static int key_remove(struct platform_device *pdev)
 
     del_timer_sync(&dev->debounce_timer);
     input_unregister_device(dev->input);
+    input_free_device(dev->input);
     gpio_free(dev->gpio_index);
 
     return 0;
@@ -143,5 +144,5 @@ static struct platform_driver key_driver = {
 module_platform_driver(key_driver);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Your Name");
+MODULE_AUTHOR("LRQ");
 MODULE_DESCRIPTION("Platform-based GPIO Key Driver");

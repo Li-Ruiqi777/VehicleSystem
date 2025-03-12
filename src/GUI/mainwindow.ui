@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>480</width>
+    <height>272</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QStackedWidget" name="stackedWidget">
+      <property name="currentIndex">
+       <number>1</number>
+      </property>
+      <widget class="MenuWidget" name="page_menu"/>
+      <widget class="HardWareWidget" name="page_hardware"/>
+      <widget class="MapWidget" name="page_map"/>
+      <widget class="VideoWidget" name="page_video"/>
+      <widget class="MusicWidget" name="page_music"/>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>480</width>
+     <height>27</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>MenuWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">/home/lrq/Desktop/VehicleSystem/src/GUI/ui/menu_widget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>HardWareWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">/home/lrq/Desktop/VehicleSystem/src/GUI/ui/hardware_widget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>MapWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">/home/lrq/Desktop/VehicleSystem/src/GUI/ui/map_widget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>MusicWidget</class>
+   <extends>QWidget</extends>
+   <header>/home/lrq/Desktop/VehicleSystem/src/GUI/ui/music_widget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>VideoWidget</class>
+   <extends>QWidget</extends>
+   <header>/home/lrq/Desktop/VehicleSystem/src/GUI/ui/video_widget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

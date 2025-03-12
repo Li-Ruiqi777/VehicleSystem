@@ -114,18 +114,18 @@ int led_probe(struct platform_device *pdev)
     led_gpio_init(pdev);
 
     // 动态分配设备号
-    if (led_device->major)
+    if (led_device->major) // 已经定义了设备号
     {
         led_device->devid = MKDEV(led_device->major, 0);
         register_chrdev_region(led_device->devid, 1, "gpio_led");
     }
-    else
+    else // 未定义设备号
     {
         alloc_chrdev_region(&led_device->devid, 0, 1, "gpio_led"); // 申请设备号
         led_device->major = MAJOR(led_device->devid);              // 获取分配号的主设备号
         led_device->minor = MINOR(led_device->devid);              // 获取分配号的次设备号
     }
-    printk("gpioled major=%d,minor=%d\r\n", led_device->major, led_device->minor);
+    printk("gpioled major = %d, minor = %d\r\n", led_device->major, led_device->minor);
 
     // 注册字符设备
     led_device->cdev.owner = THIS_MODULE;
@@ -164,7 +164,6 @@ static int led_remove(struct platform_device *pdev)
     device_destroy(led_device->class, led_device->devid);
     class_destroy(led_device->class);
     cdev_del(&led_device->cdev);
-    devm_gpio_free(&pdev->dev, led_device->gpio_index);
     unregister_chrdev_region(led_device->devid, 1);
 
     printk(KERN_INFO "gpio_led module unloaded \n");
