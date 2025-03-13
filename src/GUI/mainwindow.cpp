@@ -2,7 +2,8 @@
 #include "ui/common.h"
 #include "ui/menu_widget.h"
 #include "ui_mainwindow.h"
-#include <iostream>
+
+#include "plog/Log.h"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow)
 {
@@ -18,8 +19,8 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::onChangePage(int idx)
-{
-    std::cout << "onChangePage: " << idx << std::endl;
+{   
+    PLOGI << "onChangePage: " << idx;
     if (idx < static_cast<int>(PageEnum::HardWareControlPage) || idx > static_cast<int>(PageEnum::MusicPage))
         return;
     ui->stackedWidget->setCurrentIndex(idx);

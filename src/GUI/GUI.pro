@@ -26,6 +26,8 @@ HEADERS += \
     ui/video_widget.h
     ui/common.h
 
+INCLUDEPATH += /home/lrq/linux/IMX6ULL/tool/plog/include/
+
 FORMS += \
     mainwindow.ui \
     ui/hardware_widget.ui \
