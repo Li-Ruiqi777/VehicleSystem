@@ -26,7 +26,9 @@ HEADERS += \
     ui/video_widget.h
     ui/common.h
 
-INCLUDEPATH += /home/lrq/linux/IMX6ULL/tool/plog/include/
+INCLUDEPATH += \
+    /home/lrq/linux/IMX6ULL/tool/plog/include/ \
+    /usr/local/arm/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/libc/usr/include/ \
 
 FORMS += \
     mainwindow.ui \

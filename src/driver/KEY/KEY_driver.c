@@ -41,7 +41,8 @@ static void key_debounce_handler(unsigned long data)
 
     input_report_key(dev->input, KEY_0, !state);
     input_sync(dev->input);
-    printk(KERN_INFO "KEY_0: %d\n\r", state);
+    
+    // printk(KERN_INFO "KEY_0: %d\n\r", state);
 }
 
 static int key_probe(struct platform_device *pdev)

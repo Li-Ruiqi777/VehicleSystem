@@ -19,9 +19,13 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::onChangePage(int idx)
-{   
+{
     PLOGI << "onChangePage: " << idx;
-    if (idx < static_cast<int>(PageEnum::HardWareControlPage) || idx > static_cast<int>(PageEnum::MusicPage))
+    if (idx < static_cast<int>(PageEnum::MenuPage) || idx > static_cast<int>(PageEnum::MusicPage))
+    {
+        PLOGF << "invalid page";
         return;
+    }
+
     ui->stackedWidget->setCurrentIndex(idx);
 }

@@ -14,4 +14,4 @@ clean:
 	rm -rf ./build/gui-Release
 
 install: gui
-	cp -r ./build/gui-Release/GUI /home/lrq/linux/nfs/qtrootfs/qt_apps
+	cp ./build/gui-Release/GUI /home/lrq/linux/nfs/qtrootfs/qt_apps

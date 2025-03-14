@@ -4,6 +4,9 @@
 #include <QWidget>
 #include <QAbstractButton>
 
+#include <thread>
+#include <memory>
+
 namespace Ui
 {
     class MenuWidget;
@@ -23,7 +26,11 @@ signals:
     void changePage(int idx);
 
 private:
+    void initBoardButton();
+
     Ui::MenuWidget *ui;
+    int btn_fd;
+    std::unique_ptr<std::thread> btn_thread;
 };
 
 #endif // MENU_WIDGET_H
