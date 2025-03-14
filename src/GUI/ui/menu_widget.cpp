@@ -22,6 +22,8 @@ MenuWidget::MenuWidget(QWidget *parent) : QWidget(parent), ui(new Ui::MenuWidget
 MenuWidget::~MenuWidget()
 {
     delete ui;
+    if(this->btn_fd >= 0)
+        ::close(this->btn_fd);   
 }
 
 void MenuWidget::on_buttonGroup_buttonClicked(QAbstractButton *button)
