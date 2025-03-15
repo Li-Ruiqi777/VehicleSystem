@@ -4,12 +4,15 @@
 class LED
 {
 public:
-    LED(std::string _dev_path);
+    LED(const std::string &_dev_path);
     ~LED();
     void on();
     void off();
 
 private:
+    void openDevice();
+    void closeDevice();
+
     int fd;
     bool is_on;
     std::string dev_path;

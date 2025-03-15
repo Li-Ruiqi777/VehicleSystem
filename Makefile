@@ -12,6 +12,7 @@ gui:
 
 clean:
 	rm -rf ./build/gui-Release
+	rm -rf ./src/GUI/compile_commands.json
 
 install: gui
 	cp ./build/gui-Release/GUI /home/lrq/linux/nfs/qtrootfs/qt_apps

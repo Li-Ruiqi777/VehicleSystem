@@ -30,14 +30,14 @@ struct LED_device
 
 static int led_open(struct inode *inode, struct file *file)
 {
-    printk(KERN_INFO "LED opened\n");
+    // printk(KERN_INFO "LED opened\n");
     file->private_data = container_of(inode->i_cdev, struct LED_device, cdev);
     return 0;
 }
 
 static int led_release(struct inode *inode, struct file *file)
 {
-    printk(KERN_INFO "LED closed\n");
+    // printk(KERN_INFO "LED closed\n");
     return 0;
 }
 
@@ -60,7 +60,7 @@ static ssize_t led_write(struct file *file, const char __user *buf, size_t count
         return EFAULT;
     }
 
-    printk(KERN_INFO "intput data = %d \n", databuf[0]);
+    // printk(KERN_INFO "intput data = %d \n", databuf[0]);
 
     if (databuf[0] == LEDON)
         gpio_set_value(led_device->gpio_index, 0);
