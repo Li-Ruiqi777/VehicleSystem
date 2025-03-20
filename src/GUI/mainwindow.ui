@@ -18,13 +18,14 @@
     <item>
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="currentIndex">
-       <number>1</number>
+       <number>5</number>
       </property>
       <widget class="MenuWidget" name="page_menu"/>
       <widget class="HardWareWidget" name="page_hardware"/>
       <widget class="MapWidget" name="page_map"/>
       <widget class="VideoWidget" name="page_video"/>
       <widget class="MusicWidget" name="page_music"/>
+      <widget class="BackupviewWidget" name="page_backupview"/>
      </widget>
     </item>
    </layout>
@@ -45,19 +46,19 @@
   <customwidget>
    <class>MenuWidget</class>
    <extends>QWidget</extends>
-   <header location="global">/home/lrq/Desktop/VehicleSystem/src/GUI/ui/menu_widget.h</header>
+   <header>/home/lrq/Desktop/VehicleSystem/src/GUI/ui/menu_widget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>HardWareWidget</class>
    <extends>QWidget</extends>
-   <header location="global">/home/lrq/Desktop/VehicleSystem/src/GUI/ui/hardware_widget.h</header>
+   <header>/home/lrq/Desktop/VehicleSystem/src/GUI/ui/hardware_widget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>MapWidget</class>
    <extends>QWidget</extends>
-   <header location="global">/home/lrq/Desktop/VehicleSystem/src/GUI/ui/map_widget.h</header>
+   <header>/home/lrq/Desktop/VehicleSystem/src/GUI/ui/map_widget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
@@ -70,6 +71,12 @@
    <class>VideoWidget</class>
    <extends>QWidget</extends>
    <header>/home/lrq/Desktop/VehicleSystem/src/GUI/ui/video_widget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>BackupviewWidget</class>
+   <extends>QWidget</extends>
+   <header>/home/lrq/Desktop/VehicleSystem/src/GUI/ui/backupview_widget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

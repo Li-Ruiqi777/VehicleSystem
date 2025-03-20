@@ -6,4 +6,5 @@ enum class PageEnum {
     MapPage,
     VideoPage,
     MusicPage,
+    BackupviewPage,
 };

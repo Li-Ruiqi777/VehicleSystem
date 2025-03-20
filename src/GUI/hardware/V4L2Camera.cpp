@@ -13,12 +13,11 @@
 V4L2Camera::V4L2Camera(const std::string &_dev_path, uint32_t _width, uint32_t _height, uint32_t _frame_rate,
                        uint32_t _buffer_length)
     : dev_path(_dev_path), fd(-1), width(_width), height(_height), frame_rate(_frame_rate),
-      is_capturing(false), buffer_length(_buffer_length), buffer(nullptr), frame_queue_length(_buffer_length)
+      is_capturing(false), buffer_length(_buffer_length), buffers(nullptr), frame_queue_length(_buffer_length)
 {
     try
     {
         this->openDevice();
-        // this->getParameters();
         this->setParameters();
         this->initBuffer();
         PLOGI << "V4L2Camera Init " << this->dev_path << " Success!";
@@ -38,7 +37,7 @@ V4L2Camera::~V4L2Camera()
 
 void V4L2Camera::startCapture()
 {
-    if(this->is_capturing == true)
+    if (this->is_capturing == true)
         return;
     enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     if (ioctl(fd, VIDIOC_STREAMON, &type) < 0)
@@ -50,7 +49,7 @@ void V4L2Camera::startCapture()
 
 void V4L2Camera::stopCapture()
 {
-    if(this->is_capturing == false)
+    if (this->is_capturing == false)
         return;
     enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     if (ioctl(fd, VIDIOC_STREAMOFF, &type) < 0)
@@ -156,7 +155,8 @@ void V4L2Camera::setParameters()
 
 void V4L2Camera::initBuffer()
 {
-    // 在内核申请缓冲区
+    this->buffers = std::unique_ptr<BufferInfo[]>(new BufferInfo[this->buffer_length]);
+    // 在内核申请缓冲区·
     v4l2_requestbuffers req_buf;
     req_buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     req_buf.memory = V4L2_MEMORY_MMAP;
@@ -169,14 +169,16 @@ void V4L2Camera::initBuffer()
     buf.memory = V4L2_MEMORY_MMAP;
     for (int i = 0; i < this->buffer_length; i++)
     {
+        buf.index = i;
         if (ioctl(fd, VIDIOC_QUERYBUF, &buf) < 0)
             throw std::runtime_error("Failed to query buffer");
+        
         // 映射缓冲区到用户空间
-        this->buffer =
-            (uint8_t *)mmap(NULL, buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, buf.m.offset);
-        if (this->buffer == MAP_FAILED)
+        this->buffers[i].length = buf.length;
+        this->buffers[i].start = (uint8_t *)mmap(NULL, buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, buf.m.offset);
+        if (this->buffers[i].start == MAP_FAILED)
             throw std::runtime_error("Failed to map buffer");
-        buf.index = i;
+        
         // 入队
         if (ioctl(fd, VIDIOC_QBUF, &buf) < 0)
             throw std::runtime_error("Failed to queue buffer");
@@ -185,7 +187,7 @@ void V4L2Camera::initBuffer()
 
 void V4L2Camera::deinitBuffer()
 {
-    if (this->buffer == nullptr)
+    if (this->buffers == nullptr)
         return;
     for (int i = 0; i < this->buffer_length; i++)
     {
@@ -200,48 +202,63 @@ void V4L2Camera::deinitBuffer()
             // throw std::runtime_error("Failed to dequeue buffer");
         }
         // 解除映射
-        munmap(this->buffer, buf.length);
-        this->buffer = nullptr;
+        munmap(this->buffers[i].start, this->buffers[i].length);
+        this->buffers[i].start = nullptr;
     }
 }
 
 void V4L2Camera::dataCollectionLoop()
 {
-    v4l2_buffer buf = {};
+    v4l2_buffer buf;
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
-
-    auto frame_data_buffer = std::shared_ptr<uint8_t>(new uint8_t[this->width * this->height]);
-
     while (this->is_capturing)
     {
-        // 出队
-        if (ioctl(fd, VIDIOC_DQBUF, &buf) < 0)
+        for (int i = 0; i < this->buffer_length; ++i)
         {
-            // throw std::runtime_error("Failed to dequeue buffer");
-            PLOGE << "Failed to dequeue buffer";
-            continue;
+            // 出队
+            if (ioctl(fd, VIDIOC_DQBUF, &buf) < 0)
+            {
+                // throw std::runtime_error("Failed to dequeue buffer");
+                PLOGE << "Failed to dequeue buffer";
+                continue;
+            }
+
+            // 处理图像数据
+            FrameData frame_data;
+            frame_data.width = this->width;
+            frame_data.height = this->height;
+            frame_data.yuyv_data = std::shared_ptr<uint8_t>(new uint8_t[this->buffers[i].length], [](uint8_t *p) {delete[] p;});
+            memccpy(frame_data.yuyv_data.get(), this->buffers[i].start, 0, this->buffers[i].length);
+
+            {
+                std::lock_guard<std::mutex> lock(this->frame_queue_mutex);
+                this->frame_queue.push(frame_data);
+                // PLOGI << "get one frame";
+
+                // 如果队列超过最大长度，移除最旧的帧
+                if (this->frame_queue.size() > this->frame_queue_length)
+                    this->frame_queue.pop();
+            }
+
+            // 入队
+            if (ioctl(fd, VIDIOC_QBUF, &buf) < 0)
+                throw std::runtime_error("Failed to queue buffer");
         }
-
-        // 处理图像数据
-        FrameData frame_data;
-        frame_data.width = this->width;
-        frame_data.height = this->height;
-        frame_data.data = frame_data_buffer;
-        std::copy(this->buffer, this->buffer + buf.bytesused, frame_data.data.get());
-
-        {
-            std::lock_guard<std::mutex> lock(this->frame_queue_mutex);
-            this->frame_queue.push(frame_data);
-            PLOGI << "get one frame";
-
-            // 如果队列超过最大长度，移除最旧的帧
-            if (this->frame_queue.size() > this->frame_queue_length)
-                this->frame_queue.pop();
-        }
-
-        // 入队
-        if (ioctl(fd, VIDIOC_QBUF, &buf) < 0)
-            throw std::runtime_error("Failed to queue buffer");
     }
+}
+
+FrameData V4L2Camera::getFrame()
+{
+    std::lock_guard<std::mutex> lock(this->frame_queue_mutex);
+    if (this->frame_queue.empty())
+    {
+        FrameData temp;
+        temp.yuyv_data = nullptr;
+        return temp;
+    }
+        
+    FrameData frame_data = this->frame_queue.front();
+    this->frame_queue.pop();
+    return frame_data;
 }

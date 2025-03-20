@@ -15,7 +15,8 @@ QMAKE_CXX = $${TOOLCHAIN_DIR}/bin/arm-linux-gnueabihf-g++
 QMAKE_LINK = $${QMAKE_CXX}
 
 QMAKE_CFLAGS   += -march=armv7ve -mfpu=neon -mfloat-abi=hard -mcpu=cortex-a7 \
-                  -Wno-missing-field-initializers -Wno-unused-variable -Wno-sign-compare
+                  -Wno-missing-field-initializers -Wno-unused-variable -Wno-sign-compare \
+                  -g -O0
 QMAKE_CXXFLAGS += $${QMAKE_CFLAGS}
 
 SOURCES += \
@@ -26,6 +27,7 @@ SOURCES += \
     ui/menu_widget.cpp \
     ui/music_widget.cpp \
     ui/video_widget.cpp \
+    ui/backupview_widget.cpp \
     hardware/LED.cpp \
     hardware/V4L2Camera.cpp \
 
@@ -35,7 +37,8 @@ HEADERS += \
     ui/map_widget.h \
     ui/menu_widget.h \
     ui/music_widget.h \
-    ui/video_widget.h
+    ui/video_widget.h \
+    ui/backupview_widget.h \
     ui/common.h
 
 INCLUDEPATH += \
@@ -48,7 +51,8 @@ FORMS += \
     ui/map_widget.ui \
     ui/menu_widget.ui \
     ui/music_widget.ui \
-    ui/video_widget.ui
+    ui/video_widget.ui \
+    ui/backupview_widget.ui \
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

@@ -7,11 +7,12 @@
 #include <sys/types.h>
 #include <thread>
 
-struct FrameData
+#include "frame_data.h"
+
+struct BufferInfo
 {
-    uint32_t width;
-    uint32_t height;
-    std::shared_ptr<uint8_t> data;
+    uint8_t *start;
+    size_t length;
 };
 
 class V4L2Camera
@@ -23,11 +24,12 @@ public:
 
     void startCapture();
     void stopCapture();
+    void getParameters();
+    FrameData getFrame();
 
 private:
     void openDevice();
     void closeDevice();
-    void getParameters();
     void setParameters();
     void initBuffer();
     void deinitBuffer();
@@ -40,7 +42,7 @@ private:
     uint32_t frame_rate;
     bool is_capturing;
     uint32_t buffer_length;
-    uint8_t *buffer;
+    std::unique_ptr<BufferInfo[]> buffers;
 
     std::queue<FrameData> frame_queue;
     uint32_t frame_queue_length;
