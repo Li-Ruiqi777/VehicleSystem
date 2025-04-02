@@ -5,6 +5,10 @@
 - [x] 引入PLOG库
 - [x] 开发HardWareControl部分
 - [x] 加入倒车影像回放部分
+- [x] AP3216C的驱动
+- [ ] LSM6DS3的驱动
+- [ ] BMP280的驱动
+- [ ] DHT11的驱动
 
 ## 遇到的问题
 ### 1.触摸屏不准
@@ -89,3 +93,49 @@ segment fault是什么？
 
 解决思路:
 - 出现这类问题，一定要利用gdb工具，它在程序崩溃的时候可以看到崩溃的位置以及栈帧，可以知道问题大概出在哪里，然后打印变量的值，分析问题到底出在哪里
+
+### 7.i2c驱动和设备匹配不上
+排查思路：
+- 首先检查设备是否存在,使用`i2cdetect -y 1`命令检查硬件是否连接正确,如果地址显示UU则代表已经匹配上了
+- 接着看一下`/sys/bus/i2c/`下的`device`和`driver`目录下,有没有对应的设备和驱动目录。如果有的话可以仅目录看一下有没有对应的驱动/设备，有的话就是已经匹配了
+- 如果驱动和设备文件都有，但还是没匹配上，可能是代码出问题了。
+
+驱动中与匹配相关的代码如下：
+```c
+static const struct of_device_id ap3216c_of_match[] = {
+    {.compatible = "alientek,ap3216c"}, 
+    {}
+};
+static struct i2c_device_id ap3216c_i2c_id[] = {
+    {"ap3216c", 0}, 
+    {}
+};
+static struct i2c_driver ap3216c_driver = {
+    .driver =
+        {
+            .name = "ap3216c",                  // 名称匹配(用于板级代码静态注册时)
+            .of_match_table = ap3216c_of_match, // 设备树匹配
+        },
+    .id_table = ap3216c_i2c_id, // id table匹配
+    .probe = ap3216c_probe,
+    .remove = ap3216c_remove,
+};
+```
+注意：
+- `i2c`总线匹配的方式跟`platform`差不多，都有好几种,但又不完全一样，具体定义在Linux源码中的`drivers/i2c/i2c-core.c`中。这里我遇到问题的主要原因是：`i2c`即使使用`of_match_table`来匹配，也**必须**要定义`id_table`，因为在完成匹配后进行`i2c_device_probe`时在要检测这个这个字段是否存在，如果不存在，即使匹配成功了也不会调用设备的`probe`
+```c
+struct bus_type i2c_bus_type = {
+	.name		= "i2c",
+	.match		= i2c_device_match,
+	.probe		= i2c_device_probe,
+	.remove		= i2c_device_remove,
+	.shutdown	= i2c_device_shutdown,
+};
+```
+
+
+## 参考链接
+AP3216C:
+
+- https://blog.csdn.net/mftang/article/details/136222319
+- https://blog.csdn.net/zhengnianli/article/details/115222723
