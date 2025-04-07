@@ -105,7 +105,7 @@ void led_gpio_init(struct platform_device *pdev)
     gpio_direction_output(led_device->gpio_index, 1);
 }
 
-int ap3216c_probe(struct platform_device *pdev)
+int led_probe(struct platform_device *pdev)
 {
     struct LED_device *led_device = devm_kzalloc(&pdev->dev, sizeof(struct LED_device), GFP_KERNEL);
     // 将设备信息保存到platform_device的上下文中, 以便在其他地方能够访问到
@@ -177,7 +177,7 @@ static struct platform_driver led_driver = {
             .name = "imx6ull-led",
             .of_match_table = led_of_match,
         },
-    .probe = ap3216c_probe,
+    .probe = led_probe,
     .remove = led_remove,
 };
 

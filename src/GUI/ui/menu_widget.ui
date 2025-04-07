@@ -17,7 +17,7 @@
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Menu</string>
+      <string>菜单</string>
      </property>
     </widget>
    </item>
@@ -26,7 +26,7 @@
      <item row="0" column="0">
       <widget class="QPushButton" name="btn_hardware">
        <property name="text">
-        <string>HardWare</string>
+        <string>硬件控制</string>
        </property>
        <property name="idx" stdset="0">
         <number>1</number>
@@ -39,7 +39,7 @@
      <item row="1" column="1">
       <widget class="QPushButton" name="btn_music">
        <property name="text">
-        <string>Music</string>
+        <string>音乐播放</string>
        </property>
        <property name="idx" stdset="0">
         <number>4</number>
@@ -52,7 +52,7 @@
      <item row="1" column="0">
       <widget class="QPushButton" name="btn_video">
        <property name="text">
-        <string>Video</string>
+        <string>视频播放</string>
        </property>
        <property name="idx" stdset="0">
         <number>3</number>
@@ -65,7 +65,7 @@
      <item row="0" column="1">
       <widget class="QPushButton" name="btn_map">
        <property name="text">
-        <string>Map</string>
+        <string>地图</string>
        </property>
        <property name="idx" stdset="0">
         <number>2</number>
@@ -78,7 +78,7 @@
      <item row="2" column="0">
       <widget class="QPushButton" name="btn_backup">
        <property name="text">
-        <string>Backup View</string>
+        <string>倒车影像</string>
        </property>
        <property name="idx" stdset="0">
         <UInt>5</UInt>
