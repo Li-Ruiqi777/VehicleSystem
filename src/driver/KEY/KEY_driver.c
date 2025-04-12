@@ -20,7 +20,7 @@ struct key_device
 {
     struct input_dev *input;
     int gpio_index;
-    int irq;
+    int irq_index;
     struct timer_list debounce_timer;
 };
 
@@ -65,12 +65,12 @@ static int key_probe(struct platform_device *pdev)
     }
 
     /* 3. 申请中断 */
-    dev->irq = gpio_to_irq(dev->gpio_index);
-    ret = devm_request_irq(&pdev->dev, dev->irq, key_interrupt, IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+    dev->irq_index = gpio_to_irq(dev->gpio_index);
+    ret = devm_request_irq(&pdev->dev, dev->irq_index, key_interrupt, IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
                            DRV_NAME, dev);
     if (ret)
     {
-        dev_err(&pdev->dev, "Failed to request IRQ %d\n", dev->irq);
+        dev_err(&pdev->dev, "Failed to request IRQ %d\n", dev->irq_index);
         goto err_irq;
     }
 

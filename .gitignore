@@ -40,3 +40,4 @@
 **/imx6ul-pinfunc.h
 
 /build
+*.pdf

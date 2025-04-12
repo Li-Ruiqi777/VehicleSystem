@@ -137,8 +137,3 @@ struct bus_type i2c_bus_type = {
 - 问题原因：板子缺少中文字库
 - 开发板的字库在`/usr/lib/fonts/`,自己下个中文字库文件放到这个路径里面就行了
 硬件控制
-## 参考链接
-AP3216C:
-
-- https://blog.csdn.net/mftang/article/details/136222319
-- https://blog.csdn.net/zhengnianli/article/details/115222723

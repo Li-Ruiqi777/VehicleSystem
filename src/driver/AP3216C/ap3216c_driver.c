@@ -9,8 +9,12 @@
 #include <linux/delay.h>
 #include <linux/fs.h>
 #include <linux/i2c.h>
+#include <linux/interrupt.h>
+#include <linux/workqueue.h>
+#include <linux/mutex.h>
 
 #include "ap3216c.h"
+#include "linux/of_gpio.h"
 #include "linux/printk.h"
 
 // 设备驱动的信息
@@ -23,6 +27,10 @@ typedef struct
     struct class *class;       // 设备类
     struct device *device;     // 设备实例
     struct i2c_client *client; // i2c设备
+    int irq_index;             // 中断号
+    int int_gpio_index;        // 中断引脚号
+    struct work_struct work;   // 工作
+    struct mutex mtx;         // 互斥锁
 
     uint16_t ps_data;  // 接近传感器数据
     uint16_t als_data; // 环境光数据
@@ -145,6 +153,7 @@ void ap3216c_read_data(ap3216c_dev_t *ap3216c_device)
     {
         buf[i] = ap3216c_read_reg(ap3216c_device, AP3216C_IRDATALOW + i);
     }
+    mutex_lock(&ap3216c_device->mtx);
     /* IR_OF位为1,则数据无效 */
     if (buf[0] & 0X80)
     {
@@ -163,9 +172,24 @@ void ap3216c_read_data(ap3216c_dev_t *ap3216c_device)
         ap3216c_device->ps_data = 65535;
         printk(KERN_INFO "PS data is invalid\n");
     }
-        
+
     else
         ap3216c_device->ps_data = ((unsigned short)(buf[5] & 0X3F) << 4) | (buf[4] & 0X0F);
+
+    mutex_unlock(&ap3216c_device->mtx);
+}
+
+static irqreturn_t data_interrupt(int irq, void *dev_id)
+{
+    ap3216c_dev_t *ap3216c_device = (ap3216c_dev_t *)dev_id;
+    schedule_work(&(ap3216c_device->work));
+    return IRQ_HANDLED;
+}
+
+static void work_callback(struct work_struct *work)
+{
+    ap3216c_dev_t *ap3216c_device = container_of(work, ap3216c_dev_t, work);
+    ap3216c_read_data(ap3216c_device);
 }
 
 static int ap3216c_open(struct inode *inode, struct file *file)
@@ -173,12 +197,14 @@ static int ap3216c_open(struct inode *inode, struct file *file)
     // printk(KERN_INFO "LED opened\n");
     file->private_data = container_of(inode->i_cdev, ap3216c_dev_t, cdev);
 
-    /* 复位AP3216C*/
+    // 复位AP3216C
     ap3216c_write_reg(file->private_data, AP3216C_SYSTEMCONG, 0x04);
-    /* AP3216C复位最少10ms */
+    // AP3216C复位最少10ms
     mdelay(50);
-    /* 开启ALS、PS+IR*/
+    // 开启ALS、PS+IR
     ap3216c_write_reg(file->private_data, AP3216C_SYSTEMCONG, 0X03);
+    // 设置中断清除方式(读完数据寄存器自动清除中断标志位)
+    ap3216c_write_reg(file->private_data, AP3216C_INTCLEAR, 0X00);
 
     return 0;
 }
@@ -193,11 +219,12 @@ static ssize_t ap3216c_read(struct file *file, char __user *buf, size_t count, l
 {
     short data[3];
     ap3216c_dev_t *ap3216c_device = file->private_data;
-    ap3216c_read_data(file->private_data);
 
+    mutex_lock(&ap3216c_device->mtx);
     data[0] = ap3216c_device->ir_data;
     data[1] = ap3216c_device->als_data;
     data[2] = ap3216c_device->ps_data;
+    mutex_unlock(&ap3216c_device->mtx);
     copy_to_user(buf, data, sizeof(data));
 
     return 0;
@@ -258,6 +285,24 @@ static int ap3216c_probe(struct i2c_client *client, const struct i2c_device_id *
         return PTR_ERR(apc3216c_device->device);
     }
 
+    // 初始化互斥锁
+    mutex_init(&apc3216c_device->mtx);
+
+    // 初始化INT引脚并在内核注册中断上半部
+    apc3216c_device->int_gpio_index = of_get_named_gpio(client->dev.of_node, "int-gpio", 0);
+
+    apc3216c_device->irq_index = gpio_to_irq(apc3216c_device->int_gpio_index);
+    ret = devm_request_irq(&client->dev, apc3216c_device->irq_index, data_interrupt,
+                           IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING, "AP3216C", apc3216c_device);
+    if (ret)
+    {
+        dev_err(&client->dev, "Failed to request IRQ %d\n", apc3216c_device->irq_index);
+        return ret;
+    }
+
+    // 初始化下半部
+    INIT_WORK(&apc3216c_device->work, work_callback);
+
     printk(KERN_INFO "ap3216c module loaded \n");
 
     return 0;
@@ -271,6 +316,8 @@ static int ap3216c_remove(struct i2c_client *client)
     class_destroy(ap3216c_device->class);
     cdev_del(&ap3216c_device->cdev);
     unregister_chrdev_region(ap3216c_device->devid, 1);
+    gpio_free(ap3216c_device->int_gpio_index);
+    devm_free_irq(&client->dev, ap3216c_device->irq_index, ap3216c_device);
 
     printk(KERN_INFO "ap3216c module unloaded \n");
 }
@@ -289,12 +336,12 @@ static struct i2c_driver ap3216c_driver = {
     .remove = ap3216c_remove,
 };
 
-static int ap3216c_module_init(void)
+static int __init ap3216c_module_init(void)
 {
     return i2c_add_driver(&ap3216c_driver);
 }
 
-static void ap3216c_module_exit(void)
+static void __exit ap3216c_module_exit(void)
 {
     i2c_del_driver(&ap3216c_driver);
 }
