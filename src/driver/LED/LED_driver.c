@@ -181,12 +181,12 @@ static struct platform_driver led_driver = {
     .remove = led_remove,
 };
 
-static int led_module_init(void)
+static int __init led_module_init(void)
 {
     return platform_driver_register(&led_driver);
 }
 
-static void led_module_exit(void)
+static void __exit led_module_exit(void)
 {
     platform_driver_unregister(&led_driver);
 }

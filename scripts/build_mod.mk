@@ -12,6 +12,9 @@ endif
 kernel_modules:
 	$(MAKE) -s -C $(KERNELDIR) M=$(CURRENT_PATH) modules
 
+kernel_builtin:
+	$(MAKE) -s -C $(KERNELDIR) M=$(CURRENT_PATH)
+
 clean:
 	$(MAKE) -s -C $(KERNELDIR) M=$(CURRENT_PATH) clean
 	
