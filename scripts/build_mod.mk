@@ -2,7 +2,7 @@ KERNELDIR := /home/lrq/linux/IMX6ULL/temp
 CURRENT_PATH := $(shell pwd)
 MODULE_INSTALL_PATH := /home/lrq/linux/nfs/qtrootfs/lib/modules/4.1.15
 
-build: kernel_modules
+install: kernel_modules
 	mkdir -m 755 -p ${MODULE_INSTALL_PATH}/
 	mv *.ko ${MODULE_INSTALL_PATH}/
 ifeq ($(FIRMWARE_CLEAN),1)
@@ -10,12 +10,15 @@ ifeq ($(FIRMWARE_CLEAN),1)
 endif
 
 kernel_modules:
+	. /home/lrq/enable_gcc4.sh && \
 	$(MAKE) -s -C $(KERNELDIR) M=$(CURRENT_PATH) modules
 
 kernel_builtin:
+	. /home/lrq/enable_gcc4.sh && \
 	$(MAKE) -s -C $(KERNELDIR) M=$(CURRENT_PATH)
 
 clean:
+	. /home/lrq/enable_gcc4.sh && \
 	$(MAKE) -s -C $(KERNELDIR) M=$(CURRENT_PATH) clean
 	
 clean_modulues:

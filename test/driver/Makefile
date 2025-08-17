@@ -1,5 +1,5 @@
 # 定义编译器
-CXX = arm-linux-gnueabihf-g++
+CXX = /usr/local/arm/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++
 INCLUDES = /usr/local/arm/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/libc/usr/include
 
 # 定义编译选项
