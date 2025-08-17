@@ -12,8 +12,8 @@
 #include <linux/platform_device.h>
 
 #include <linux/gpio.h>
-//内核空间必须用这个ioctl.h
-#include <linux/ioctl.h> 
+// 内核空间必须用这个ioctl.h
+#include <linux/ioctl.h>
 #include <linux/of_gpio.h>
 
 #define LED_MAGIC 'L'
@@ -31,7 +31,11 @@ struct LED_device
     struct device *device;                // 设备实例
     struct device_node *device_tree_node; // 设备数中的节点
     int gpio_index;                       // led对应gpio的序号
+    struct kobject *kobj;
 };
+
+//保存全局dev变量
+struct platform_device *g_pdev;
 
 static long led_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
@@ -57,6 +61,40 @@ static struct file_operations fops = {
     .owner = THIS_MODULE,
     .unlocked_ioctl = led_ioctl,
 };
+
+/* ---------------- sysfs ---------------- */
+
+static ssize_t led_ctl_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+    struct LED_device *led = platform_get_drvdata(g_pdev);
+    pr_info("GPIO_index = %d", led->gpio_index);
+    int val = gpio_get_value(led->gpio_index) ? 0 : 1; // 高电平关闭，低电平打开
+    return sprintf(buf, "%d\n", val);
+}
+
+static ssize_t led_ctl_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
+{
+    struct LED_device *led = platform_get_drvdata(g_pdev);
+    int val;
+
+    if (kstrtoint(buf, 0, &val))
+        return count;
+
+    if (val == 1)
+    {
+        gpio_set_value(led->gpio_index, 1);
+        pr_info("LED OFF\n");
+    }
+    else
+    {
+        gpio_set_value(led->gpio_index, 0);
+        pr_info("LED ON\n");
+    }
+
+    return count;
+}
+
+static struct kobj_attribute led_ctl_attribute = __ATTR(led_ctl, 0664, led_ctl_show, led_ctl_store);
 
 void led_gpio_init(struct platform_device *pdev)
 {
@@ -117,21 +155,35 @@ int led_probe(struct platform_device *pdev)
         return ret;
     }
 
-    // 在/sys/class下创建设备类
+    // 在/sys/class下创建设备类(gpio_led)
     led_device->class = class_create(THIS_MODULE, "gpio_led");
     if (IS_ERR(led_device->class))
     {
         return PTR_ERR(led_device->class);
     }
 
-    // 在/dev下创建设备节点,并关联到设备类
+    // 在/dev下创建设备节点(led),并关联到设备类(gpio_led)
     led_device->device = device_create(led_device->class, NULL, led_device->devid, NULL, "led");
+    
     if (IS_ERR(led_device->device))
     {
         return PTR_ERR(led_device->device);
     }
 
-    printk(KERN_INFO "gpio_led module loaded \n");
+    // 创建sysfs下的led-ctl-status和led-ctl
+    led_device->kobj = kobject_create_and_add("led-ctl-status", NULL);
+    if (!led_device->kobj)
+        return -ENOMEM;
+
+    ret = sysfs_create_file(led_device->kobj, &led_ctl_attribute.attr);
+    if (ret)
+    {
+        kobject_put(led_device->kobj);
+        return ret;
+    }
+
+    g_pdev = pdev;
+    pr_info("gpio_led module loaded \n");
 
     return 0;
 }
@@ -139,6 +191,9 @@ int led_probe(struct platform_device *pdev)
 static int led_remove(struct platform_device *pdev)
 {
     struct LED_device *led_device = platform_get_drvdata(pdev);
+
+    sysfs_remove_file(led_device->kobj, &led_ctl_attribute.attr);
+    kobject_put(led_device->kobj);
 
     device_destroy(led_device->class, led_device->devid);
     class_destroy(led_device->class);
