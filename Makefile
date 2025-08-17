@@ -1,7 +1,7 @@
 gui:
 	mkdir -p ./build/gui-Release
 	cd ./build/gui-Release && \
-	qmake /home/lrq/Desktop/VehicleSystem/src/GUI/GUI.pro -spec devices/linux-buildroot-g++ \
+	/home/lrq/linux/IMX6ULL/buildroot-2019.02.6/output/host/bin/qmake /home/lrq/Desktop/VehicleSystem/src/GUI/GUI.pro -spec devices/linux-buildroot-g++ \
 	CONFIG+=object_files_dir=. \
 	CONFIG+=moc_files_dir=. \
 	CONFIG+=rcc_files_dir=. \

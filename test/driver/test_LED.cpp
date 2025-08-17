@@ -1,30 +1,28 @@
+#include <cstdint>
+#include <fcntl.h>
 #include <iostream>
 #include <string>
-#include <fcntl.h>
+// 用户空间必须用这个ioctl.h
+#include <sys/ioctl.h>
 #include <thread>
 #include <unistd.h>
+#include <chrono>
 
 const std::string LED_DEVICE = "/dev/led";
 
-void LED_Status_Convert(uint8_t nLedStatus)
-{
-    int nFd;
-    uint8_t nVal;
-
-    std::cout << "led write:" << nLedStatus << std::endl;
-    nFd = open(LED_DEVICE.c_str(), O_RDWR | O_NDELAY);
-    if(nFd != -1)
-    {
-        nVal = nLedStatus;
-        write(nFd, &nVal, 1);  //将数据写入LED
-        close(nFd);
-    }
-}
+#define LED_MAGIC 'L'
+#define LED_ON    _IO(LED_MAGIC, 0)
+#define LED_OFF   _IO(LED_MAGIC, 1)
 
 int main()
 {
-    LED_Status_Convert(1);
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    LED_Status_Convert(0);
-    return 0;
+    int fd = open(LED_DEVICE.c_str(), O_RDWR);
+    while (1)
+    {
+        ioctl(fd, LED_ON);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        ioctl(fd, LED_OFF);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    close(fd);
 }

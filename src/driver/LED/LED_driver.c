@@ -1,3 +1,4 @@
+#include "linux/printk.h"
 #include <asm/uaccess.h>
 
 #include <linux/init.h>
@@ -6,14 +7,18 @@
 #include <linux/module.h>
 
 #include <linux/cdev.h>
+#include <linux/device.h>
 #include <linux/fs.h>
 #include <linux/platform_device.h>
 
 #include <linux/gpio.h>
+//内核空间必须用这个ioctl.h
+#include <linux/ioctl.h> 
 #include <linux/of_gpio.h>
 
-#define LEDOFF 0
-#define LEDON  1
+#define LED_MAGIC 'L'
+#define LED_ON    _IO(LED_MAGIC, 0)
+#define LED_OFF   _IO(LED_MAGIC, 1)
 
 // 设备驱动的信息
 struct LED_device
@@ -28,55 +33,29 @@ struct LED_device
     int gpio_index;                       // led对应gpio的序号
 };
 
-static int led_open(struct inode *inode, struct file *file)
+static long led_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-    // printk(KERN_INFO "LED opened\n");
-    file->private_data = container_of(inode->i_cdev, struct LED_device, cdev);
-    return 0;
-}
-
-static int led_release(struct inode *inode, struct file *file)
-{
-    // printk(KERN_INFO "LED closed\n");
-    return 0;
-}
-
-static ssize_t led_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
-{
-    return 0;
-}
-
-static ssize_t led_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
-{
-    if (buf == NULL)
-        return -EINVAL;
-
-    struct LED_device *led_device = file->private_data;
-    uint8_t databuf[1];
-
-    if (__copy_from_user(databuf, buf, count) < 0)
+    struct LED_device *led_device = container_of(file->f_inode->i_cdev, struct LED_device, cdev);
+    switch (cmd)
     {
-        printk(KERN_ERR "write LED status failed! \n");
-        return EFAULT;
+    case LED_ON:
+        pr_info("LED ON\n");
+        gpio_set_value(led_device->gpio_index, 0);
+        break;
+    case LED_OFF:
+        pr_info("LED OFF\n");
+        gpio_set_value(led_device->gpio_index, 1);
+        break;
+    default:
+        return -EINVAL;
     }
 
-    // printk(KERN_INFO "intput data = %d \n", databuf[0]);
-
-    if (databuf[0] == LEDON)
-        gpio_set_value(led_device->gpio_index, 0);
-
-    else
-        gpio_set_value(led_device->gpio_index, 1);
-
-    return count;
+    return 0;
 }
 
 static struct file_operations fops = {
     .owner = THIS_MODULE,
-    .open = led_open,
-    .release = led_release,
-    .read = led_read,
-    .write = led_write,
+    .unlocked_ioctl = led_ioctl,
 };
 
 void led_gpio_init(struct platform_device *pdev)
@@ -108,7 +87,7 @@ void led_gpio_init(struct platform_device *pdev)
 int led_probe(struct platform_device *pdev)
 {
     struct LED_device *led_device = devm_kzalloc(&pdev->dev, sizeof(struct LED_device), GFP_KERNEL);
-    // 将设备信息保存到platform_device的上下文中, 以便在其他地方能够访问到
+    // 将设备信息保存到platform_device的上下文中, 以便在其他地方能够访问到led_device
     platform_set_drvdata(pdev, led_device);
 
     led_gpio_init(pdev);

@@ -36,8 +36,7 @@ void LED::on()
         return;
 
     this->is_on = true;
-    uint8_t val = 1;
-    write(this->fd, &val, 1);
+    ioctl(this->fd, LED_ON);
     PLOGI << "LED turned on: " << this->dev_path;
 }
 
@@ -47,7 +46,6 @@ void LED::off()
         return;
 
     this->is_on = false;
-    uint8_t val = 0;
-    write(this->fd, &val, 1);
+    ioctl(this->fd, LED_OFF);
     PLOGI << "LED turned off: " << this->dev_path;
 }
