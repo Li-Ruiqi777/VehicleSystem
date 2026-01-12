@@ -10,10 +10,11 @@
 #include <linux/fs.h>
 #include <linux/i2c.h>
 #include <linux/interrupt.h>
-#include <linux/workqueue.h>
 #include <linux/mutex.h>
+#include <linux/workqueue.h>
 
 #include "ap3216c.h"
+#include "linux/device.h"
 #include "linux/of_gpio.h"
 #include "linux/printk.h"
 
@@ -30,7 +31,7 @@ typedef struct
     int irq_index;             // 中断号
     int int_gpio_index;        // 中断引脚号
     struct work_struct work;   // 工作
-    struct mutex mtx;         // 互斥锁
+    struct mutex mtx;          // 互斥锁
 
     uint16_t ps_data;  // 接近传感器数据
     uint16_t als_data; // 环境光数据
@@ -70,7 +71,7 @@ static int ap3216c_read_regs(ap3216c_dev_t *ap3216c_device, u8 reg, void *val, i
     }
     else
     {
-        printk("i2c rd failed=%d reg=%06x len=%d\n", ret, reg, len);
+        dev_err(&(ap3216c_device->client->dev), "i2c read failed=%d reg=%06x len=%d\n", ret, reg, len);
         ret = -EREMOTEIO;
     }
     return ret;
@@ -91,7 +92,7 @@ static int ap3216c_write_regs(ap3216c_dev_t *ap3216c_device, u8 reg, u8 *buf, u8
     struct i2c_client *client = ap3216c_device->client;
     if (client == NULL)
     {
-        printk("client is null");
+        pr_err("ap3216c: i2c client is NULL\n");
         return 0;
     }
 
@@ -158,7 +159,7 @@ void ap3216c_read_data(ap3216c_dev_t *ap3216c_device)
     if (buf[0] & 0X80)
     {
         ap3216c_device->ir_data = 65535;
-        printk(KERN_INFO "IR data is invalid\n");
+        dev_info(&ap3216c_device->client->dev, "IR data is invalid\n");
     }
     else
         ap3216c_device->ir_data = ((unsigned short)buf[1] << 2) | (buf[0] & 0X03);
@@ -170,19 +171,22 @@ void ap3216c_read_data(ap3216c_dev_t *ap3216c_device)
     if (buf[4] & 0x40)
     {
         ap3216c_device->ps_data = 65535;
-        printk(KERN_INFO "PS data is invalid\n");
+        dev_info(&ap3216c_device->client->dev, "PS data is invalid\n");
     }
-
     else
+    {
         ap3216c_device->ps_data = ((unsigned short)(buf[5] & 0X3F) << 4) | (buf[4] & 0X0F);
+    }
 
     mutex_unlock(&ap3216c_device->mtx);
 }
 
+// 只有超过一定阈值时才会触发中断
 static irqreturn_t data_interrupt(int irq, void *dev_id)
 {
     ap3216c_dev_t *ap3216c_device = (ap3216c_dev_t *)dev_id;
     schedule_work(&(ap3216c_device->work));
+    dev_info(&(ap3216c_device->client->dev), "interrupt occurred\n");
     return IRQ_HANDLED;
 }
 
@@ -194,7 +198,6 @@ static void work_callback(struct work_struct *work)
 
 static int ap3216c_open(struct inode *inode, struct file *file)
 {
-    // printk(KERN_INFO "LED opened\n");
     file->private_data = container_of(inode->i_cdev, ap3216c_dev_t, cdev);
 
     // 复位AP3216C
@@ -206,12 +209,30 @@ static int ap3216c_open(struct inode *inode, struct file *file)
     // 设置中断清除方式(读完数据寄存器自动清除中断标志位)
     ap3216c_write_reg(file->private_data, AP3216C_INTCLEAR, 0X00);
 
+    ap3216c_dev_t *ap = file->private_data;
+    if (ap && ap->irq_index >= 0)
+    {
+        enable_irq(ap->irq_index);
+        dev_info(&ap->client->dev, "irq %d enabled\n", ap->irq_index);
+    }
+
+    dev_info(&ap->client->dev, "device opened\n");
     return 0;
 }
 
 static int ap3216c_release(struct inode *inode, struct file *file)
 {
-    // printk(KERN_INFO "LED closed\n");
+    ap3216c_dev_t *ap3216c_device = file->private_data;
+
+    if (!ap3216c_device)
+        return 0;
+
+    /* 禁用中断并取消尚未执行的下半部工作 */
+    disable_irq(ap3216c_device->irq_index);
+    cancel_work_sync(&ap3216c_device->work);
+
+    dev_info(&ap3216c_device->client->dev, "device released\n");
+
     return 0;
 }
 
@@ -256,7 +277,7 @@ static int ap3216c_probe(struct i2c_client *client, const struct i2c_device_id *
         apc3216c_device->major = MAJOR(apc3216c_device->devid);        // 获取分配号的主设备号
         apc3216c_device->minor = MINOR(apc3216c_device->devid);        // 获取分配号的次设备号
     }
-    printk("ap3216c major = %d, minor = %d\r\n", apc3216c_device->major, apc3216c_device->minor);
+    dev_info(&client->dev, "major = %d, minor = %d\r\n", apc3216c_device->major, apc3216c_device->minor);
 
     // 注册字符设备
     apc3216c_device->cdev.owner = THIS_MODULE;
@@ -265,7 +286,7 @@ static int ap3216c_probe(struct i2c_client *client, const struct i2c_device_id *
         cdev_add(&apc3216c_device->cdev, apc3216c_device->devid, 1); // 将字符设备和设备号关联, 并插入内核
     if (ret)
     {
-        printk(KERN_NOTICE "Error %d adding ap3216c", ret);
+        dev_err(&client->dev, "Error %d adding ap3216c", ret);
         unregister_chrdev_region(apc3216c_device->devid, 1);
         return ret;
     }
@@ -273,17 +294,13 @@ static int ap3216c_probe(struct i2c_client *client, const struct i2c_device_id *
     // 在/sys/class下创建设备类
     apc3216c_device->class = class_create(THIS_MODULE, "ap3216c"); // 在/sys/class下的节点名为ap3216c
     if (IS_ERR(apc3216c_device->class))
-    {
         return PTR_ERR(apc3216c_device->class);
-    }
 
     // 在/dev下创建设备节点,并关联到设备类
     apc3216c_device->device = device_create(apc3216c_device->class, NULL, apc3216c_device->devid, NULL,
                                             "ap3216c"); // 在/dev下的节点名为ap3216c
     if (IS_ERR(apc3216c_device->device))
-    {
         return PTR_ERR(apc3216c_device->device);
-    }
 
     // 初始化互斥锁
     mutex_init(&apc3216c_device->mtx);
@@ -300,10 +317,13 @@ static int ap3216c_probe(struct i2c_client *client, const struct i2c_device_id *
         return ret;
     }
 
+    if (apc3216c_device->irq_index >= 0)
+        disable_irq(apc3216c_device->irq_index);
+
     // 初始化下半部
     INIT_WORK(&apc3216c_device->work, work_callback);
 
-    printk(KERN_INFO "ap3216c module loaded \n");
+    dev_info(&client->dev, "AP3216C probe successfully\n");
 
     return 0;
 }
@@ -319,7 +339,7 @@ static int ap3216c_remove(struct i2c_client *client)
     gpio_free(ap3216c_device->int_gpio_index);
     devm_free_irq(&client->dev, ap3216c_device->irq_index, ap3216c_device);
 
-    printk(KERN_INFO "ap3216c module unloaded \n");
+    dev_info(&client->dev, "AP3216C remove successfully\n");
 }
 
 static const struct of_device_id ap3216c_of_match[] = {{.compatible = "alientek,ap3216c"}, {}};

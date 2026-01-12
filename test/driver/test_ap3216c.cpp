@@ -17,7 +17,13 @@ int main()
     uint16_t data[3];
     while (1)
     {
+        // if(read(fd, data, sizeof(data))!= sizeof(data))
+        // {
+        //     std::cout << "read ap3216c failed" << std::endl;
+        //     continue;
+        // }
         read(fd, data, sizeof(data));
+
         std::cout << "ir data: " << data[0] << std::endl;
         std::cout << "als data: " << data[1] << std::endl;
         std::cout << "ps data: " << data[2] << std::endl << std::endl;

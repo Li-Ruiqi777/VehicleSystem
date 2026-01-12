@@ -5,6 +5,7 @@
 
 #include "asm-generic/gpio.h"
 #include "asm/gpio.h"
+#include <linux/delay.h>
 #include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 
@@ -27,6 +28,7 @@ struct key_device
 static irqreturn_t key_interrupt(int irq, void *dev_id)
 {
     struct key_device *dev = dev_id;
+    pr_info("KEY_0 interrupt\n");
 
     // 启动去抖动定时器
     mod_timer(&dev->debounce_timer, jiffies + msecs_to_jiffies(KEY_DEBOUNCE_MS));
@@ -40,7 +42,7 @@ static void key_debounce_handler(unsigned long data)
     int state = gpio_get_value(dev->gpio_index);
 
     input_report_key(dev->input, KEY_0, !state);
-    input_sync(dev->input);
+    input_sync(dev->input); // 同步所有报告的事件，表示一次input事件结束
     
     // printk(KERN_INFO "KEY_0: %d\n\r", state);
 }

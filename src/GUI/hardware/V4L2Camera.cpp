@@ -156,7 +156,7 @@ void V4L2Camera::setParameters()
 void V4L2Camera::initBuffer()
 {
     this->buffers = std::unique_ptr<BufferInfo[]>(new BufferInfo[this->buffer_length]);
-    // 在内核申请缓冲区·
+    // 在内核申请缓冲区
     v4l2_requestbuffers req_buf;
     req_buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     req_buf.memory = V4L2_MEMORY_MMAP;

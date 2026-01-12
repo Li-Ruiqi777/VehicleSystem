@@ -16,7 +16,7 @@ QMAKE_LINK = $${QMAKE_CXX}
 
 QMAKE_CFLAGS   += -march=armv7ve -mfpu=neon -mfloat-abi=hard -mcpu=cortex-a7 \
                   -Wno-missing-field-initializers -Wno-unused-variable -Wno-sign-compare \
-                  -g -O0
+                  -g -O3
 QMAKE_CXXFLAGS += $${QMAKE_CFLAGS}
 
 SOURCES += \
@@ -30,6 +30,7 @@ SOURCES += \
     ui/backupview_widget.cpp \
     hardware/LED.cpp \
     hardware/V4L2Camera.cpp \
+    hardware/AP3216C.cpp
 
 HEADERS += \
     mainwindow.h \
@@ -42,7 +43,7 @@ HEADERS += \
     ui/common.h
 
 INCLUDEPATH += \
-    /home/lrq/linux/IMX6ULL/tool/plog/include \
+    /home/lrq/linux/ThirdPart/plog/include \
     hardware \
 
 FORMS += \
