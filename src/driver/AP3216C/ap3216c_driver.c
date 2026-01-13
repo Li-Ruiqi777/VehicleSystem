@@ -269,7 +269,7 @@ static int ap3216c_probe(struct i2c_client *client, const struct i2c_device_id *
     if (apc3216c_device->major) // 已经定义了设备号
     {
         apc3216c_device->devid = MKDEV(apc3216c_device->major, 0);
-        register_chrdev_region(apc3216c_device->devid, 1, "ap3216c"); // 在/proc/devices下的节点名为ap3216c
+        register_chrdev_region(apc3216c_device->devid, 1, "ap3216c");
     }
     else // 未定义设备号
     {
